@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MS-CIT Calling Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #eef4fb 0%, #dde8f5 100%);
+    color: #1f2937;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(31, 78, 121, 0.25);
+    margin-bottom: 24px;
+  }
+  .header h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+  .header p { font-size: 14px; opacity: 0.92; margin-top: 6px; }
+  .header .pill {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 4px solid #2E75B6;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.10); }
+  .kpi-card .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .kpi-card .value {
+    font-size: 30px;
+    font-weight: 700;
+    color: #1F4E79;
+    margin-top: 6px;
+    line-height: 1;
+  }
+  .kpi-card .sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .kpi-card.green { border-left-color: #10b981; }
+  .kpi-card.green .value { color: #065f46; }
+  .kpi-card.orange { border-left-color: #f59e0b; }
+  .kpi-card.orange .value { color: #92400e; }
+  .kpi-card.red { border-left-color: #ef4444; }
+  .kpi-card.red .value { color: #991b1b; }
+  .kpi-card.purple { border-left-color: #8b5cf6; }
+  .kpi-card.purple .value { color: #5b21b6; }
+
+  /* Rate cards */
+  .rate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .rate-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .rate-card .label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .rate-card .value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1F4E79;
+  }
+  .progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2E75B6, #1F4E79);
+    border-radius: 4px;
+    transition: width 0.6s;
+  }
+  .rate-card.conv .progress-fill { background: linear-gradient(90deg, #10b981, #059669); }
+  .rate-card.interest .progress-fill { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .rate-card.callback .progress-fill { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+
+  /* Section */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) {
+    .row, .row-3 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .card h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1F4E79;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eef4fb;
+  }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap.tall { height: 360px; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: #f3f7fc;
+    color: #1F4E79;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 2px solid #dde8f5;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #f0f4f9;
+  }
+  tr:hover td { background: #fafbfc; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar-cell {
+    display: inline-block;
+    height: 8px;
+    background: linear-gradient(90deg, #2E75B6, #1F4E79);
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.good { background: #d1fae5; color: #065f46; }
+  .badge.warn { background: #fef3c7; color: #92400e; }
+  .badge.bad  { background: #fee2e2; color: #991b1b; }
+
+  .footer {
+    text-align: center;
+    color: #6b7280;
+    font-size: 12px;
+    padding: 20px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>MS-CIT Calling Dashboard</h1>
+    <p>Operational overview for the call-centre team</p>
+    <span class="pill" id="periodPill">Reporting period</span>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="label">Total Calls</div><div class="value" id="kpi-total">-</div><div class="sub">Across the period</div></div>
+    <div class="kpi-card green"><div class="label">Connected</div><div class="value" id="kpi-conn">-</div><div class="sub" id="kpi-conn-sub"></div></div>
+    <div class="kpi-card green"><div class="label">Admissions Taken</div><div class="value" id="kpi-adm">-</div><div class="sub" id="kpi-adm-sub"></div></div>
+    <div class="kpi-card orange"><div class="label">Interested</div><div class="value" id="kpi-int">-</div><div class="sub">Warm leads</div></div>
+    <div class="kpi-card purple"><div class="label">Call Backs Pending</div><div class="value" id="kpi-cb">-</div><div class="sub">Follow-up required</div></div>
+    <div class="kpi-card red"><div class="label">Not Interested</div><div class="value" id="kpi-ni">-</div><div class="sub">Closed leads</div></div>
+    <div class="kpi-card red"><div class="label">Wrong Numbers</div><div class="value" id="kpi-wn">-</div><div class="sub">Data quality issue</div></div>
+    <div class="kpi-card"><div class="label">Active Agents</div><div class="value" id="kpi-ag">-</div><div class="sub">On the calling roster</div></div>
+  </div>
+
+  <!-- Rate cards -->
+  <div class="rate-grid">
+    <div class="rate-card">
+      <div class="label">Connection Rate</div>
+      <div class="value"><span id="rate-conn">-</span>%</div>
+      <div class="progress-bar"><div class="progress-fill" id="bar-conn" style="width:0%"></div></div>
+    </div>
+    <div class="rate-card interest">
+      <div class="label">Interest Rate (of connected)</div>
+      <div class="value"><span id="rate-int">-</span>%</div>
+      <div class="progress-bar"><div class="progress-fill" id="bar-int" style="width:0%"></div></div>
+    </div>
+    <div class="rate-card conv">
+      <div class="label">Conversion Rate (Admissions / Calls)</div>
+      <div class="value"><span id="rate-conv">-</span>%</div>
+      <div class="progress-bar"><div class="progress-fill" id="bar-conv" style="width:0%"></div></div>
+    </div>
+    <div class="rate-card callback">
+      <div class="label">Call-Back Rate</div>
+      <div class="value"><span id="rate-cb">-</span>%</div>
+      <div class="progress-bar"><div class="progress-fill" id="bar-cb" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Daily volume + Agent chart -->
+  <div class="row">
+    <div class="card">
+      <h2>Daily Call Trend</h2>
+      <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Agent Performance — Calls, Connected, Admissions</h2>
+      <div class="chart-wrap"><canvas id="agentChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Status + Result + Districts -->
+  <div class="row-3">
+    <div class="card">
+      <h2>Call Status Breakdown</h2>
+      <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Call Result Breakdown</h2>
+      <div class="chart-wrap"><canvas id="resultChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Top Districts by Call Volume</h2>
+      <div class="chart-wrap"><canvas id="districtChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="row">
+    <div class="card">
+      <h2>Agent Scorecard</h2>
+      <table>
+        <thead><tr>
+          <th>Agent</th><th class="num">Calls</th><th class="num">Conn</th>
+          <th class="num">Adm</th><th class="num">Conn %</th><th class="num">Conv %</th>
+        </tr></thead>
+        <tbody id="agent-table"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>District Snapshot (Top 15)</h2>
+      <table>
+        <thead><tr>
+          <th>District</th><th class="num">Calls</th><th class="num">Connected</th><th class="num">Admissions</th>
+        </tr></thead>
+        <tbody id="district-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">MS-CIT Calling Dashboard · Built from cleaned calling data</div>
+</div>
+
+<script>
+const DATA = {
+  "kpis": {
+    "total": 680,
+    "connected": 262,
+    "admission": 47,
+    "interested": 58,
+    "callback": 202,
+    "not_interested": 160,
+    "wrong": 38,
+    "agents": 10,
+    "conn_rate": 38.5,
+    "conv_rate": 6.9,
+    "interest_rate": 40.1
+  },
+  "daily": [
+    {
+      "date": "17-Apr",
+      "total": 76,
+      "connected": 32,
+      "admission": 5
+    },
+    {
+      "date": "18-Apr",
+      "total": 118,
+      "connected": 59,
+      "admission": 10
+    },
+    {
+      "date": "19-Apr",
+      "total": 115,
+      "connected": 57,
+      "admission": 6
+    },
+    {
+      "date": "20-Apr",
+      "total": 113,
+      "connected": 54,
+      "admission": 11
+    },
+    {
+      "date": "21-Apr",
+      "total": 117,
+      "connected": 58,
+      "admission": 15
+    },
+    {
+      "date": "22-Apr",
+      "total": 141,
+      "connected": 2,
+      "admission": 0
+    }
+  ],
+  "agents": [
+    {
+      "name": "Prajakta",
+      "total": 131,
+      "connected": 63,
+      "interested": 8,
+      "admission": 7,
+      "callback": 27
+    },
+    {
+      "name": "Pooja",
+      "total": 85,
+      "connected": 33,
+      "interested": 9,
+      "admission": 6,
+      "callback": 35
+    },
+    {
+      "name": "Sanjivani",
+      "total": 83,
+      "connected": 25,
+      "interested": 6,
+      "admission": 1,
+      "callback": 31
+    },
+    {
+      "name": "Rutuja",
+      "total": 83,
+      "connected": 46,
+      "interested": 11,
+      "admission": 8,
+      "callback": 32
+    },
+    {
+      "name": "Sakshi B",
+      "total": 82,
+      "connected": 36,
+      "interested": 9,
+      "admission": 6,
+      "callback": 17
+    },
+    {
+      "name": "Pranali",
+      "total": 67,
+      "connected": 19,
+      "interested": 0,
+      "admission": 4,
+      "callback": 19
+    },
+    {
+      "name": "Sakshi M",
+      "total": 41,
+      "connected": 9,
+      "interested": 10,
+      "admission": 0,
+      "callback": 18
+    },
+    {
+      "name": "Anjali",
+      "total": 36,
+      "connected": 11,
+      "interested": 2,
+      "admission": 7,
+      "callback": 10
+    },
+    {
+      "name": "Sonam",
+      "total": 36,
+      "connected": 10,
+      "interested": 0,
+      "admission": 3,
+      "callback": 5
+    },
+    {
+      "name": "Siddhali",
+      "total": 36,
+      "connected": 10,
+      "interested": 3,
+      "admission": 5,
+      "callback": 8
+    }
+  ],
+  "status": [
+    {
+      "label": "Connected",
+      "value": 262
+    },
+    {
+      "label": "Call Not Connected",
+      "value": 98
+    },
+    {
+      "label": "Busy",
+      "value": 43
+    },
+    {
+      "label": "Wrong Number",
+      "value": 38
+    },
+    {
+      "label": "Duplicate Number",
+      "value": 36
+    },
+    {
+      "label": "Out Off Service",
+      "value": 26
+    },
+    {
+      "label": "invalid number",
+      "value": 21
+    },
+    {
+      "label": "Switch Off",
+      "value": 19
+    },
+    {
+      "label": "Yet to connect",
+      "value": 1
+    }
+  ],
+  "results": [
+    {
+      "label": "Call Back",
+      "value": 202
+    },
+    {
+      "label": "Not Interested",
+      "value": 160
+    },
+    {
+      "label": "Wrong Number",
+      "value": 68
+    },
+    {
+      "label": "Interested",
+      "value": 58
+    },
+    {
+      "label": "Admission Taken",
+      "value": 47
+    },
+    {
+      "label": "MS-CIT Completed",
+      "value": 4
+    },
+    {
+      "label": "ALC Testing",
+      "value": 2
+    },
+    {
+      "label": "KLiC Course Enquiry",
+      "value": 2
+    }
+  ],
+  "districts": [
+    {
+      "name": "-not selected-",
+      "total": 282,
+      "connected": 115,
+      "admission": 14
+    },
+    {
+      "name": "Thane",
+      "total": 52,
+      "connected": 18,
+      "admission": 0
+    },
+    {
+      "name": "Pune",
+      "total": 46,
+      "connected": 21,
+      "admission": 2
+    },
+    {
+      "name": "Mumbai Suburban",
+      "total": 32,
+      "connected": 3,
+      "admission": 1
+    },
+    {
+      "name": "Nashik",
+      "total": 25,
+      "connected": 8,
+      "admission": 0
+    },
+    {
+      "name": "Mumbai",
+      "total": 25,
+      "connected": 14,
+      "admission": 0
+    },
+    {
+      "name": "Ahilyanagar",
+      "total": 20,
+      "connected": 11,
+      "admission": 5
+    },
+    {
+      "name": "Parbhani",
+      "total": 18,
+      "connected": 2,
+      "admission": 0
+    },
+    {
+      "name": "Nagpur",
+      "total": 15,
+      "connected": 6,
+      "admission": 4
+    },
+    {
+      "name": "Chhatrapati Sambhajinagar",
+      "total": 15,
+      "connected": 5,
+      "admission": 1
+    },
+    {
+      "name": "Jalgaon",
+      "total": 12,
+      "connected": 5,
+      "admission": 3
+    },
+    {
+      "name": "Satara",
+      "total": 12,
+      "connected": 3,
+      "admission": 1
+    },
+    {
+      "name": "Raigad",
+      "total": 12,
+      "connected": 4,
+      "admission": 2
+    },
+    {
+      "name": "Kolhapur",
+      "total": 10,
+      "connected": 3,
+      "admission": 0
+    },
+    {
+      "name": "Buldhana",
+      "total": 9,
+      "connected": 4,
+      "admission": 0
+    }
+  ],
+  "date_min": "17-Apr-2026",
+  "date_max": "22-Apr-2026"
+};
+
+// Header
+document.getElementById('periodPill').textContent =
+  `${DATA.date_min} → ${DATA.date_max}`;
+
+// KPIs
+const k = DATA.kpis;
+document.getElementById('kpi-total').textContent = k.total.toLocaleString();
+document.getElementById('kpi-conn').textContent  = k.connected.toLocaleString();
+document.getElementById('kpi-conn-sub').textContent = `${k.conn_rate}% of calls`;
+document.getElementById('kpi-adm').textContent   = k.admission.toLocaleString();
+document.getElementById('kpi-adm-sub').textContent = `${k.conv_rate}% conversion`;
+document.getElementById('kpi-int').textContent   = k.interested.toLocaleString();
+document.getElementById('kpi-cb').textContent    = k.callback.toLocaleString();
+document.getElementById('kpi-ni').textContent    = k.not_interested.toLocaleString();
+document.getElementById('kpi-wn').textContent    = k.wrong.toLocaleString();
+document.getElementById('kpi-ag').textContent    = k.agents;
+
+// Rates
+document.getElementById('rate-conn').textContent = k.conn_rate;
+document.getElementById('rate-int').textContent  = k.interest_rate;
+document.getElementById('rate-conv').textContent = k.conv_rate;
+const cbRate = ((k.callback / k.total) * 100).toFixed(1);
+document.getElementById('rate-cb').textContent = cbRate;
+setTimeout(() => {
+  document.getElementById('bar-conn').style.width = k.conn_rate + '%';
+  document.getElementById('bar-int').style.width  = k.interest_rate + '%';
+  document.getElementById('bar-conv').style.width = (k.conv_rate * 3) + '%'; // scale up for visibility
+  document.getElementById('bar-cb').style.width   = cbRate + '%';
+}, 120);
+
+// Chart.js common defaults
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Arial';
+Chart.defaults.color = '#374151';
+
+// Daily chart
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.daily.map(d => d.date),
+    datasets: [
+      { label: 'Total Calls', data: DATA.daily.map(d => d.total),
+        borderColor: '#2E75B6', backgroundColor: 'rgba(46,117,182,0.15)',
+        tension: 0.3, fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6 },
+      { label: 'Connected', data: DATA.daily.map(d => d.connected),
+        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+        tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6 },
+      { label: 'Admissions', data: DATA.daily.map(d => d.admission),
+        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)',
+        tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { beginAtZero: true, grid: { color: '#f0f4f9' } },
+              x: { grid: { display: false } } }
+  }
+});
+
+// Agent chart
+new Chart(document.getElementById('agentChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.agents.map(a => a.name),
+    datasets: [
+      { label: 'Total Calls', data: DATA.agents.map(a => a.total),
+        backgroundColor: '#2E75B6' },
+      { label: 'Connected', data: DATA.agents.map(a => a.connected),
+        backgroundColor: '#10b981' },
+      { label: 'Admissions', data: DATA.agents.map(a => a.admission),
+        backgroundColor: '#f59e0b' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { beginAtZero: true, grid: { color: '#f0f4f9' } },
+              x: { grid: { display: false } } }
+  }
+});
+
+// Status doughnut
+const STATUS_COLORS = ['#10b981','#94a3b8','#fbbf24','#ef4444','#a78bfa','#f97316','#6366f1','#64748b','#d1d5db'];
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: DATA.status.map(s => s.label),
+    datasets: [{
+      data: DATA.status.map(s => s.value),
+      backgroundColor: STATUS_COLORS,
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+  }
+});
+
+// Result doughnut
+const RESULT_COLORS = ['#8b5cf6','#ef4444','#94a3b8','#f59e0b','#10b981','#3b82f6','#6366f1','#14b8a6'];
+new Chart(document.getElementById('resultChart'), {
+  type: 'doughnut',
+  data: {
+    labels: DATA.results.map(r => r.label),
+    datasets: [{
+      data: DATA.results.map(r => r.value),
+      backgroundColor: RESULT_COLORS,
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+  }
+});
+
+// Districts
+new Chart(document.getElementById('districtChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.districts.map(d => d.name),
+    datasets: [{ label: 'Calls', data: DATA.districts.map(d => d.total),
+                 backgroundColor: '#2E75B6' }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, grid: { color: '#f0f4f9' } },
+              y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
+  }
+});
+
+// Agent table
+const agentBody = document.getElementById('agent-table');
+const maxCalls = Math.max(...DATA.agents.map(a => a.total));
+DATA.agents.forEach(a => {
+  const connPct = a.total ? (a.connected / a.total * 100) : 0;
+  const convPct = a.total ? (a.admission / a.total * 100) : 0;
+  const connBadge = connPct >= 45 ? 'good' : connPct >= 30 ? 'warn' : 'bad';
+  const convBadge = convPct >= 10 ? 'good' : convPct >= 5 ? 'warn' : 'bad';
+  const barWidth = (a.total / maxCalls) * 80;
+  agentBody.insertAdjacentHTML('beforeend', `
+    <tr>
+      <td><b>${a.name}</b></td>
+      <td class="num"><span class="bar-cell" style="width:${barWidth}px"></span>${a.total}</td>
+      <td class="num">${a.connected}</td>
+      <td class="num">${a.admission}</td>
+      <td class="num"><span class="badge ${connBadge}">${connPct.toFixed(1)}%</span></td>
+      <td class="num"><span class="badge ${convBadge}">${convPct.toFixed(1)}%</span></td>
+    </tr>
+  `);
+});
+
+// District table
+const distBody = document.getElementById('district-table');
+DATA.districts.forEach(d => {
+  distBody.insertAdjacentHTML('beforeend', `
+    <tr>
+      <td>${d.name}</td>
+      <td class="num">${d.total}</td>
+      <td class="num">${d.connected}</td>
+      <td class="num">${d.admission}</td>
+    </tr>
+  `);
+});
+</script>
+</body>
+</html>
