@@ -992,7 +992,7 @@ function render(from,to){
   C.spend=new Chart(document.getElementById('spendCh'),{type:'bar',
     data:{labels:allM.map(m=>ML[m]||m),datasets:[
       {label:'Google Ads',data:allM.map(m=>Math.round(gaM[m]||0)),backgroundColor:'#4285F4',borderRadius:4},
-      {label:'Meta Ads',data:allM.map(m=>Math.round(metM[m]||0)),backgroundColor:'#1877F2',borderRadius:4}
+      {label:'Meta Ads',data:allM.map(m=>Math.round(metM[m]||0)),backgroundColor:'#8bc34a',borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:12}}},
